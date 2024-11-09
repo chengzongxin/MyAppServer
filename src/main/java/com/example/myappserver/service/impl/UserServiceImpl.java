@@ -59,6 +59,16 @@ public class UserServiceImpl implements UserService {
     
     @Override
     public User update(User user) {
+        // 获取原有用户信息
+        User existingUser = findById(user.getId());
+        if (existingUser == null) {
+            throw new BusinessException("用户不存在");
+        }
+        
+        // 保持原有的状态值
+        user.setStatus(existingUser.getStatus());
+        
+        // 更新用户信息
         userMapper.update(user);
         return user;
     }
@@ -125,8 +135,18 @@ public class UserServiceImpl implements UserService {
             // 3. 删除旧头像
             String oldAvatarUrl = user.getAvatarUrl();
             if (oldAvatarUrl != null && !oldAvatarUrl.isEmpty()) {
-                String oldObjectKey = oldAvatarUrl.substring(oldAvatarUrl.lastIndexOf("/") + 1);
-                fileService.deleteFile("avatars/" + oldObjectKey);
+                // 去掉查询参数，只保留文件路径部分
+                String oldObjectKey = oldAvatarUrl;
+                if (oldObjectKey.contains("?")) {
+                    oldObjectKey = oldObjectKey.substring(0, oldObjectKey.indexOf("?"));
+                }
+                // 从完整URL中提取文件名
+                oldObjectKey = oldObjectKey.substring(oldObjectKey.lastIndexOf("/") + 1);
+                // 组合完整的对象键
+                String fullObjectKey = "avatars/" + oldObjectKey;
+                
+                System.out.println("Deleting old avatar: " + fullObjectKey); // 添加日志
+                fileService.deleteFile(fullObjectKey);
             }
             
             // 4. 更新头像URL

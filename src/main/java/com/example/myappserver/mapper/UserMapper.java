@@ -25,14 +25,18 @@ public interface UserMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(User user);
     
-    @Update("UPDATE user SET name = #{name}, email = #{email}, " +
-            "status = #{status}, updated_at = NOW() WHERE id = #{id}")
+    @Update("UPDATE user SET " +
+            "name = #{name}, " +
+            "email = #{email}, " +
+            "status = COALESCE(#{status}, status), " +
+            "updated_at = NOW() " +
+            "WHERE id = #{id}")
     int update(User user);
     
     @Update("UPDATE user SET last_login_time = NOW() WHERE id = #{id}")
     int updateLoginTime(@Param("id") Integer id);
     
-    @Update("UPDATE user SET avatar_url = #{avatarUrl} WHERE id = #{id}")
+    @Update("UPDATE user SET avatar_url = #{avatarUrl}, updated_at = NOW() WHERE id = #{id}")
     int updateAvatar(@Param("id") Integer id, @Param("avatarUrl") String avatarUrl);
     
     @Delete("DELETE FROM user WHERE id = #{id}")
