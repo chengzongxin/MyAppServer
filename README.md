@@ -275,7 +275,7 @@ src/main/java/com/example/myappserver/
 │   ├── LoginRequest.java (登录请求)
 │   └── LoginResponse.java (登录响应)
 └── exception/
-    └── BusinessException.java (务异常)
+    └── BusinessException.java (务异��)
 ```
 
 ### 5. 功能说明
@@ -443,7 +443,7 @@ src/main/java/com/example/myappserver/
 
 4. 调试技巧
    - 可以通过 "Schema" 查看数据结构
-   - 响应示例可作为参考
+   - 响���示例可作为参考
    - 错误信息会显示在 Response body 中
    - 可以查看完整的请求和响应头
 
@@ -581,7 +581,7 @@ curl -X GET http://localhost:8080/api/files/images/uuid.jpg/url
 #### 9.4 注意事项
 
 1. 安全性：
-   - 确保 AK/SK 不要硬编码在代码中
+   - 确保 AK/SK 不要硬编码在代���中
    - 建议使环境变量或配置中心
    - 生产环境建议启用桶的访问控制
 
@@ -965,3 +965,194 @@ curl -X POST http://localhost:8080/api/comments \
    - 支持多级评论
    - 删除评论采用软删除
    - 评论数量会实时更新到文章表
+
+### 13. 博客模块发布指南
+
+#### 13.1 数据库准备
+
+1. 确保数据库中已创建所需表：
+```sql
+-- 检查是否存在表
+SHOW TABLES LIKE 'blog_%';
+
+-- 如果不存在，执行建表语句
+-- 博客文章表
+CREATE TABLE blog_post (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL COMMENT '文章标题',
+    content TEXT NOT NULL COMMENT '文章内容',
+    summary TEXT COMMENT '文章摘要',
+    cover_image VARCHAR(500) COMMENT '封面图片URL',
+    author_id INT NOT NULL COMMENT '作者ID',
+    status TINYINT DEFAULT 1 COMMENT '状态：0-草稿，1-已发布，2-已删除',
+    view_count INT DEFAULT 0 COMMENT '浏览次数',
+    like_count INT DEFAULT 0 COMMENT '点赞次数',
+    comment_count INT DEFAULT 0 COMMENT '评论次数',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    FOREIGN KEY (author_id) REFERENCES user(id)
+) COMMENT '博客文章表';
+
+-- 其他表的建表语句...（见上文）
+```
+
+#### 13.2 配置文件更新
+
+1. 检查并更新 application.yml：
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://your-production-host:3306/your-database?useSSL=true
+    username: your-production-username
+    password: your-production-password
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# 华为云 OBS 配置（如果使用）
+huaweicloud:
+  obs:
+    ak: your-access-key
+    sk: your-secret-key
+    endpoint: https://obs.cn-south-1.myhuaweicloud.com
+    bucketName: your-bucket-name
+```
+
+#### 13.3 打包部署
+
+1. 打包项目：
+```bash
+# 清理并打包
+mvn clean package -DskipTests
+
+# 如果需要运行测试
+mvn clean package
+```
+
+2. 检查打包结果：
+```bash
+# 检查 target 目录下是否生成了 jar 文件
+ls -l target/MyAppServer-0.0.1-SNAPSHOT.jar
+```
+
+3. 部署到生产环境：
+```bash
+# 复制 jar 文件到服务器
+scp target/MyAppServer-0.0.1-SNAPSHOT.jar user@your-server:/path/to/app/
+
+# SSH 登录到服务器
+ssh user@your-server
+
+# 停止旧版本（如果存在）
+kill $(ps aux | grep 'MyAppServer' | grep -v grep | awk '{print $2}')
+
+# 启动新版本
+nohup java -jar MyAppServer-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+
+# 查看启动日志
+tail -f app.log
+```
+
+#### 13.4 验证部署
+
+1. 检查服务状态：
+```bash
+# 检查进程是否运行
+ps aux | grep MyAppServer
+
+# 检查端口是否监听
+netstat -nltp | grep 8080
+```
+
+2. 测试接口：
+```bash
+# 测试博客列表接口
+curl http://your-domain:8080/api/posts
+
+# 测试创建文章
+curl -X POST http://your-domain:8080/api/posts \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer your-token" \
+-d '{
+    "title": "测试文章",
+    "content": "这是一篇测试文章",
+    "summary": "测试摘要",
+    "categoryIds": [1],
+    "tags": ["测试"]
+}'
+```
+
+#### 13.5 生产环境注意事项
+
+1. 安全配置：
+   - 使用 HTTPS
+   - 配置防火墙规则
+   - 设置适当的文件权限
+   - 使用环境变量存储敏感信息
+
+2. 性能优化：
+   - 配置合适的 JVM 参数
+   ```bash
+   java -Xms1g -Xmx2g -jar MyAppServer-0.0.1-SNAPSHOT.jar
+   ```
+   - 配置数据库连接池
+   - 添加缓存层
+
+3. 监控和维护：
+   - 配置日志收集
+   - 设置系统监控
+   - 配置数据库备份
+   - 定期检查磁盘空间
+
+4. 回滚准备：
+   - 保留旧版本的备份
+   - 准备回滚脚本
+   ```bash
+   # 回滚脚本示例
+   #!/bin/bash
+   kill $(ps aux | grep 'MyAppServer' | grep -v grep | awk '{print $2}')
+   mv MyAppServer-0.0.1-SNAPSHOT.jar MyAppServer-0.0.1-SNAPSHOT.jar.new
+   mv MyAppServer-0.0.1-SNAPSHOT.jar.old MyAppServer-0.0.1-SNAPSHOT.jar
+   nohup java -jar MyAppServer-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+   ```
+
+#### 13.6 故障排查指南
+
+1. 服务无法启动：
+   - 检查日志文件
+   - 验证数据库连接
+   - 检查端口占用
+   - 验证配置文件
+
+2. 接口报错：
+   - 检查请求参数
+   - 验证 token 是否有效
+   - 查看详细错误日志
+   - 检查数据库查询
+
+3. 性能问题：
+   - 检查 JVM 内存使用
+   - 分析数据库慢查询
+   - 检查磁盘 IO
+   - 监控网络状态
+
+#### 13.7 维护计划
+
+1. 日常维护：
+   - 每日检查日志
+   - 监控系统资源
+   - 备份数据库
+
+2. 定期维护：
+   - 更新安全补丁
+   - 清理临时文件
+   - 优化数据库
+   - 检查备份有效性
+
+3. 应急预案：
+   - 准备回滚方案
+   - 建立应急联系机制
+   - 准备备用服务器
