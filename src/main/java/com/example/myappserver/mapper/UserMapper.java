@@ -14,12 +14,23 @@ public interface UserMapper {
     @Select("SELECT * FROM user WHERE id = #{id}")
     User findById(@Param("id") Integer id);
     
-    @Insert("INSERT INTO user(name, email) VALUES(#{name}, #{email})")
+    @Select("SELECT * FROM user WHERE username = #{username}")
+    User findByUsername(@Param("username") String username);
+    
+    @Select("SELECT * FROM user WHERE email = #{email}")
+    User findByEmail(@Param("email") String email);
+    
+    @Insert("INSERT INTO user(username, name, email, password, status, created_at, updated_at) " +
+            "VALUES(#{username}, #{name}, #{email}, #{password}, #{status}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(User user);
     
-    @Update("UPDATE user SET name = #{name}, email = #{email} WHERE id = #{id}")
+    @Update("UPDATE user SET name = #{name}, email = #{email}, " +
+            "status = #{status}, updated_at = NOW() WHERE id = #{id}")
     int update(User user);
+    
+    @Update("UPDATE user SET last_login_time = NOW() WHERE id = #{id}")
+    int updateLoginTime(@Param("id") Integer id);
     
     @Delete("DELETE FROM user WHERE id = #{id}")
     int delete(@Param("id") Integer id);
