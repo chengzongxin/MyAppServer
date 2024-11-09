@@ -5,9 +5,11 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,8 +17,11 @@ import java.util.Map;
 @Component
 public class JwtUtil {
     
-    // 密钥，实际项目中应该从配置文件读取
-    private static final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    // 使用固定的密钥字符串
+    private static final String SECRET_KEY = "your_secret_key_must_be_very_long_at_least_256_bits_for_hs256_algorithm";
+    
+    // 根据密钥字符串生成密钥对象
+    private static final SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
     
     // token 有效期（毫秒）
     private static final long EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24小时

@@ -269,7 +269,7 @@ src/main/java/com/example/myappserver/
 │       └── UserServiceImpl.java
 ├── mapper/
 │   └── UserMapper.java (数据库操)
-���── model/
+├── model/
 │   └── User.java (用户实体)
 ├── dto/
 │   ├── LoginRequest.java (登录请求)
@@ -376,7 +376,7 @@ src/main/java/com/example/myappserver/
 
 4. 访问地址：
    - Swagger UI：http://localhost:8080/swagger-ui.html
-   - OpenAPI ���档：http://localhost:8080/v3/api-docs
+   - OpenAPI 档：http://localhost:8080/v3/api-docs
 
 5. 主要注解说明：
    - @Tag：标记 Controller 类
@@ -757,3 +757,211 @@ curl -X POST http://localhost:8080/api/users/1/avatar \
    - 限制文件大小
    - 防止恶意文件上传
    - 使用 HTTPS 传输
+
+### 12. 博客模块接口文档
+
+#### 12.1 博客文章接口
+
+1. 获取所有文章
+```bash
+curl -X GET http://localhost:8080/api/posts
+```
+
+2. 获取文章详情
+```bash
+curl -X GET http://localhost:8080/api/posts/1
+```
+
+3. 创建文章
+```bash
+curl -X POST http://localhost:8080/api/posts \
+-H "Content-Type: application/json" \
+-d '{
+    "title": "Spring Boot 入门教程",
+    "content": "这是一篇关于 Spring Boot 的入门教程...",
+    "summary": "本文介绍了 Spring Boot 的基本概念和使用方法",
+    "categoryIds": [1, 2],
+    "tags": ["Spring", "Java"]
+}'
+```
+
+4. 更新文章
+```bash
+curl -X PUT http://localhost:8080/api/posts/1 \
+-H "Content-Type: application/json" \
+-d '{
+    "title": "Spring Boot 入门教程（更新版）",
+    "content": "更新后的内容...",
+    "summary": "更新后的摘要",
+    "categoryIds": [1, 2, 3],
+    "tags": ["Spring", "Java", "Web"]
+}'
+```
+
+5. 删除文章
+```bash
+curl -X DELETE http://localhost:8080/api/posts/1
+```
+
+6. 增加浏览量
+```bash
+curl -X POST http://localhost:8080/api/posts/1/view
+```
+
+7. 点赞文章
+```bash
+curl -X POST http://localhost:8080/api/posts/1/like
+```
+
+#### 12.2 博客分类接口
+
+1. 获取所有分类
+```bash
+curl -X GET http://localhost:8080/api/categories
+```
+
+2. 创建分类
+```bash
+curl -X POST http://localhost:8080/api/categories \
+-H "Content-Type: application/json" \
+-d '{
+    "name": "Java开发",
+    "description": "Java相关的技术文章"
+}'
+```
+
+3. 更新分类
+```bash
+curl -X PUT http://localhost:8080/api/categories/1 \
+-H "Content-Type: application/json" \
+-d '{
+    "name": "Java进阶",
+    "description": "Java进阶技术文章"
+}'
+```
+
+4. 删除分类
+```bash
+curl -X DELETE http://localhost:8080/api/categories/1
+```
+
+#### 12.3 博客标签接口
+
+1. 获取所有标签
+```bash
+curl -X GET http://localhost:8080/api/tags
+```
+
+2. 创建标签
+```bash
+curl -X POST http://localhost:8080/api/tags?name=Spring
+```
+
+3. 删除标签
+```bash
+curl -X DELETE http://localhost:8080/api/tags/1
+```
+
+4. 获取文章的标签
+```bash
+curl -X GET http://localhost:8080/api/tags/post/1
+```
+
+#### 12.4 博客评论接口
+
+1. 获取文章评论
+```bash
+curl -X GET http://localhost:8080/api/comments/post/1
+```
+
+2. 创建评论
+```bash
+curl -X POST http://localhost:8080/api/comments \
+-H "Content-Type: application/json" \
+-d '{
+    "postId": 1,
+    "content": "这是一条评论",
+    "parentId": null
+}'
+```
+
+3. 删除评论
+```bash
+curl -X DELETE http://localhost:8080/api/comments/1
+```
+
+4. 获取评论回复
+```bash
+curl -X GET http://localhost:8080/api/comments/1/replies
+```
+
+5. 获取评论数量
+```bash
+curl -X GET http://localhost:8080/api/comments/post/1/count
+```
+
+#### 12.5 测试用例
+
+1. 创建测试文章：
+```bash
+# 1. 先创建分类
+curl -X POST http://localhost:8080/api/categories \
+-H "Content-Type: application/json" \
+-d '{"name": "Java教程", "description": "Java相关教程"}'
+
+# 2. 创建标签
+curl -X POST http://localhost:8080/api/tags?name=Spring
+curl -X POST http://localhost:8080/api/tags?name=Java
+
+# 3. 创建文章
+curl -X POST http://localhost:8080/api/posts \
+-H "Content-Type: application/json" \
+-d '{
+    "title": "Spring Boot 入门教程",
+    "content": "这是一篇关于 Spring Boot 的入门教程...",
+    "summary": "本文介绍了 Spring Boot 的基本概念和使用方法",
+    "categoryIds": [1],
+    "tags": ["Spring", "Java"]
+}'
+```
+
+2. 测试评论功能：
+```bash
+# 1. 创建主评论
+curl -X POST http://localhost:8080/api/comments \
+-H "Content-Type: application/json" \
+-d '{
+    "postId": 1,
+    "content": "很好的教程！",
+    "parentId": null
+}'
+
+# 2. 创建回复
+curl -X POST http://localhost:8080/api/comments \
+-H "Content-Type: application/json" \
+-d '{
+    "postId": 1,
+    "content": "谢谢支持！",
+    "parentId": 1
+}'
+```
+
+#### 12.6 注意事项
+
+1. 文章管理：
+   - 创建文章时必须指定分类
+   - 标签是可选的
+   - 删除文章会同时删除相关的评论
+
+2. 分类管理：
+   - 分类名称不能重复
+   - 删除分类前需要确保没有文章使用该分类
+
+3. 标签管理：
+   - 标签名称不能重复
+   - 创建文章时会自动创建不存在的标签
+
+4. 评论管理：
+   - 支持多级评论
+   - 删除评论采用软删除
+   - 评论数量会实时更新到文章表
