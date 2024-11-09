@@ -14,10 +14,12 @@ public interface UserMapper {
     @Select("SELECT * FROM user WHERE id = #{id}")
     User findById(@Param("id") Integer id);
     
-    @Select("SELECT * FROM user WHERE username = #{username}")
+    @Select("SELECT id, username, name, email, password, COALESCE(status, 1) as status, " +
+            "created_at, updated_at, last_login_time FROM user WHERE username = #{username}")
     User findByUsername(@Param("username") String username);
     
-    @Select("SELECT * FROM user WHERE email = #{email}")
+    @Select("SELECT id, username, name, email, password, COALESCE(status, 1) as status, " +
+            "created_at, updated_at, last_login_time FROM user WHERE email = #{email}")
     User findByEmail(@Param("email") String email);
     
     @Insert("INSERT INTO user(username, name, email, password, status, created_at, updated_at) " +

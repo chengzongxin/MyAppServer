@@ -39,22 +39,23 @@ public class UserServiceImpl implements UserService {
     @Override
     public User create(User user) {
         try {
-            // 加密密码
-            String rawPassword = user.getPassword();
+            // 1. 加密密码
+            String rawPassword = user.getPassword();  // 假设是 "123456"
             String encodedPassword = passwordEncoder.encode(rawPassword);
             
-            // 打印详细信息
-            System.out.println("密码加密过程:");
-            System.out.println("原始密码: " + rawPassword);
-            System.out.println("加密后的密码: " + encodedPassword);
-            System.out.println("加密密码的组成部分:");
-            String[] parts = encodedPassword.split("\\$");
-            System.out.println("- 算法版本: " + parts[1]);
-            System.out.println("- 加密强度: " + parts[2]);
-            System.out.println("- salt+hash: " + parts[3]);
+            // 打印调试信息
+            System.out.println("用户创建密码信息：");
+            System.out.println("用户名：" + user.getUsername());
+            System.out.println("原始密码：" + rawPassword);
+            System.out.println("加密后密码：" + encodedPassword);
             
+            // 2. 设置加密后的密码
             user.setPassword(encodedPassword);
+            
+            // 3. 设置其他默认值
             user.setStatus(1);
+            
+            // 4. 保存用户
             userMapper.insert(user);
             return user;
         } catch (Exception e) {
@@ -78,6 +79,7 @@ public class UserServiceImpl implements UserService {
     public LoginResponse login(LoginRequest loginRequest) {
         User user = null;
         
+        // 1. 根据用户名或邮箱查找用户
         if (loginRequest.getUsername() != null) {
             user = userMapper.findByUsername(loginRequest.getUsername());
         } else if (loginRequest.getEmail() != null) {
@@ -88,19 +90,39 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户不存在");
         }
         
-        if (user.getStatus() == 0) {
+        // 2. 验证用户状态（添加空值检查）
+        Integer status = user.getStatus();
+        if (status == null) {
+            // 如果状态为空，设置默认值
+            status = 1;
+            user.setStatus(status);
+        }
+        
+        if (status == 0) {
             throw new BusinessException("用户已被禁用");
         }
         
-        // 验证密码（这里假设密码是明文存储，实际项目中应该加密）
-        if (!loginRequest.getPassword().equals(user.getPassword())) {
+        // 3. 验证密码
+        String rawPassword = loginRequest.getPassword();
+        String encodedPassword = user.getPassword();
+        
+        // 打印调试信息
+        System.out.println("登录验证信息：");
+        System.out.println("用户名：" + user.getUsername());
+        System.out.println("输入的原始密码：" + rawPassword);
+        System.out.println("数据库中的密码：" + encodedPassword);
+        
+        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
+            System.out.println("密码验证失败");
             throw new BusinessException("密码错误");
         }
         
-        // 生成 JWT token
+        System.out.println("密码验证成功");
+        
+        // 4. 生成 JWT token
         String token = jwtUtil.generateToken(user);
         
-        // 更新最后登录时间
+        // 5. 更新最后登录时间
         userMapper.updateLoginTime(user.getId());
         
         return LoginResponse.builder()
