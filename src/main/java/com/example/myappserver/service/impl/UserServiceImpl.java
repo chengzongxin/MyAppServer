@@ -3,6 +3,7 @@ package com.example.myappserver.service.impl;
 import com.example.myappserver.mapper.UserMapper;
 import com.example.myappserver.model.User;
 import com.example.myappserver.service.UserService;
+import com.example.myappserver.service.FileService;
 import com.example.myappserver.dto.LoginRequest;
 import com.example.myappserver.dto.LoginResponse;
 import com.example.myappserver.exception.BusinessException;
@@ -10,9 +11,11 @@ import com.example.myappserver.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -26,6 +29,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private JwtUtil jwtUtil;
     
+    @Autowired
+    private FileService fileService;
+    
     @Override
     public List<User> findAll() {
         return userMapper.findAll();
@@ -38,30 +44,17 @@ public class UserServiceImpl implements UserService {
     
     @Override
     public User create(User user) {
-        try {
-            // 1. 加密密码
-            String rawPassword = user.getPassword();  // 假设是 "123456"
-            String encodedPassword = passwordEncoder.encode(rawPassword);
-            
-            // 打印调试信息
-            System.out.println("用户创建密码信息：");
-            System.out.println("用户名：" + user.getUsername());
-            System.out.println("原始密码：" + rawPassword);
-            System.out.println("加密后密码：" + encodedPassword);
-            
-            // 2. 设置加密后的密码
-            user.setPassword(encodedPassword);
-            
-            // 3. 设置其他默认值
-            user.setStatus(1);
-            
-            // 4. 保存用户
-            userMapper.insert(user);
-            return user;
-        } catch (Exception e) {
-            System.out.println("创建用户失败: " + e.getMessage());
-            throw new BusinessException("创建用户失败: " + e.getMessage());
-        }
+        // 1. 加密密码
+        String rawPassword = user.getPassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        user.setPassword(encodedPassword);
+        
+        // 2. 设置默认值
+        user.setStatus(1);
+        
+        // 3. 保存用户
+        userMapper.insert(user);
+        return user;
     }
     
     @Override
@@ -77,9 +70,8 @@ public class UserServiceImpl implements UserService {
     
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
+        // 1. 查找用户
         User user = null;
-        
-        // 1. 根据用户名或邮箱查找用户
         if (loginRequest.getUsername() != null) {
             user = userMapper.findByUsername(loginRequest.getUsername());
         } else if (loginRequest.getEmail() != null) {
@@ -90,41 +82,23 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户不存在");
         }
         
-        // 2. 验证用户状态（添加空值检查）
-        Integer status = user.getStatus();
-        if (status == null) {
-            // 如果状态为空，设置默认值
-            status = 1;
-            user.setStatus(status);
-        }
-        
-        if (status == 0) {
+        // 2. 验证状态
+        if (user.getStatus() == 0) {
             throw new BusinessException("用户已被禁用");
         }
         
         // 3. 验证密码
-        String rawPassword = loginRequest.getPassword();
-        String encodedPassword = user.getPassword();
-        
-        // 打印调试信息
-        System.out.println("登录验证信息：");
-        System.out.println("用户名：" + user.getUsername());
-        System.out.println("输入的原始密码：" + rawPassword);
-        System.out.println("数据库中的密码：" + encodedPassword);
-        
-        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
-            System.out.println("密码验证失败");
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new BusinessException("密码错误");
         }
         
-        System.out.println("密码验证成功");
-        
-        // 4. 生成 JWT token
+        // 4. 生成token
         String token = jwtUtil.generateToken(user);
         
-        // 5. 更新最后登录时间
+        // 5. 更新登录时间
         userMapper.updateLoginTime(user.getId());
         
+        // 6. 返回登录响应
         return LoginResponse.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
@@ -133,5 +107,35 @@ public class UserServiceImpl implements UserService {
                 .token(token)
                 .lastLoginTime(LocalDateTime.now())
                 .build();
+    }
+    
+    @Override
+    public User updateAvatar(Integer userId, MultipartFile file) {
+        // 1. 验证用户
+        User user = findById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        
+        try {
+            // 2. 上传文件
+            Map<String, String> uploadResult = fileService.uploadFile(file, "avatars");
+            String avatarUrl = uploadResult.get("url");
+            
+            // 3. 删除旧头像
+            String oldAvatarUrl = user.getAvatarUrl();
+            if (oldAvatarUrl != null && !oldAvatarUrl.isEmpty()) {
+                String oldObjectKey = oldAvatarUrl.substring(oldAvatarUrl.lastIndexOf("/") + 1);
+                fileService.deleteFile("avatars/" + oldObjectKey);
+            }
+            
+            // 4. 更新头像URL
+            userMapper.updateAvatar(userId, avatarUrl);
+            user.setAvatarUrl(avatarUrl);
+            
+            return user;
+        } catch (Exception e) {
+            throw new BusinessException("更新头像失败: " + e.getMessage());
+        }
     }
 } 

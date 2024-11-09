@@ -3,6 +3,7 @@ package com.example.myappserver.service;
 import com.example.myappserver.model.User;
 import com.example.myappserver.dto.LoginRequest;
 import com.example.myappserver.dto.LoginResponse;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface UserService {
@@ -12,4 +13,5 @@ public interface UserService {
     User update(User user);
     void delete(Integer id);
     LoginResponse login(LoginRequest loginRequest);
+    User updateAvatar(Integer userId, MultipartFile file);
 } 

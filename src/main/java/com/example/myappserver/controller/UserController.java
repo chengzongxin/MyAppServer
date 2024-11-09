@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -24,18 +25,14 @@ public class UserController {
     private UserService userService;
     
     @Operation(summary = "获取所有用户")
-    @ApiResponse(responseCode = "200", description = "成功获取用户列表")
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.findAll());
     }
     
     @Operation(summary = "根据ID获取用户")
-    @ApiResponse(responseCode = "200", description = "成功获取用户信息")
-    @ApiResponse(responseCode = "404", description = "用户不存在")
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(
-            @Parameter(description = "用户ID") @PathVariable Integer id) {
+    public ResponseEntity<User> getUserById(@PathVariable Integer id) {
         User user = userService.findById(id);
         if (user != null) {
             return ResponseEntity.ok(user);
@@ -43,39 +40,39 @@ public class UserController {
         return ResponseEntity.notFound().build();
     }
     
-    @Operation(summary = "创建新用户")
-    @ApiResponse(responseCode = "200", description = "用户创建成功")
+    @Operation(summary = "创建用户")
     @PostMapping
-    public ResponseEntity<User> createUser(
-            @Parameter(description = "用户信息") @RequestBody User user) {
+    public ResponseEntity<User> createUser(@RequestBody User user) {
         return ResponseEntity.ok(userService.create(user));
     }
     
-    @Operation(summary = "更新用户信息")
-    @ApiResponse(responseCode = "200", description = "用户信息更新成功")
+    @Operation(summary = "更新用户")
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(
-            @Parameter(description = "用户ID") @PathVariable Integer id,
-            @Parameter(description = "用户信息") @RequestBody User user) {
+            @PathVariable Integer id,
+            @RequestBody User user) {
         user.setId(id);
         return ResponseEntity.ok(userService.update(user));
     }
     
     @Operation(summary = "删除用户")
-    @ApiResponse(responseCode = "200", description = "用户删除成功")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(
-            @Parameter(description = "用户ID") @PathVariable Integer id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         userService.delete(id);
         return ResponseEntity.ok().build();
     }
     
     @Operation(summary = "用户登录")
-    @ApiResponse(responseCode = "200", description = "登录成功")
-    @ApiResponse(responseCode = "400", description = "登录失败")
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
-            @Parameter(description = "登录信息") @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(userService.login(loginRequest));
+    }
+    
+    @Operation(summary = "更新用户头像")
+    @PostMapping("/{id}/avatar")
+    public ResponseEntity<User> updateAvatar(
+            @PathVariable Integer id,
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(userService.updateAvatar(id, file));
     }
 } 

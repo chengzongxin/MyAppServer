@@ -70,7 +70,7 @@ public class User {
     private Integer status;     // 用户状态：0-禁用，1-正常
     private LocalDateTime createdAt;    // 创建时间
     private LocalDateTime updatedAt;    // 更新时间
-    private LocalDateTime lastLoginTime; // 最后登录时间
+    private LocalDateTime lastLoginTime; // 最后登录时
 }
 ```
 
@@ -268,8 +268,8 @@ src/main/java/com/example/myappserver/
 │   └── impl/
 │       └── UserServiceImpl.java
 ├── mapper/
-│   └── UserMapper.java (数据库操作)
-├── model/
+│   └── UserMapper.java (数据库操)
+���── model/
 │   └── User.java (用户实体)
 ├── dto/
 │   ├── LoginRequest.java (登录请求)
@@ -376,7 +376,7 @@ src/main/java/com/example/myappserver/
 
 4. 访问地址：
    - Swagger UI：http://localhost:8080/swagger-ui.html
-   - OpenAPI 文档：http://localhost:8080/v3/api-docs
+   - OpenAPI ���档：http://localhost:8080/v3/api-docs
 
 5. 主要注解说明：
    - @Tag：标记 Controller 类
@@ -388,7 +388,7 @@ src/main/java/com/example/myappserver/
 6. 使用说明：
    - 启动项目后访问 Swagger UI 地址
    - 可以查看所有接口的详细信息
-   - 支持在线调试接口
+   - 支持在线调接口
    - 可以直接导出 API 文档
 
 7. 注意事项：
@@ -443,7 +443,7 @@ src/main/java/com/example/myappserver/
 
 4. 调试技巧
    - 可以通过 "Schema" 查看数据结构
-   - 响应示例可以作为参考
+   - 响应示例可作为参考
    - 错误信息会显示在 Response body 中
    - 可以查看完整的请求和响应头
 
@@ -503,3 +503,257 @@ SELECT username, password FROM user WHERE username = 'zhangsan';
    - BCryptPasswordEncoder 没有正确注入
    - 数据库密码字段长度不够
    - 密码比对方法使用不当
+
+### 9. 文件上传功能
+
+#### 9.1 配置说明
+
+1. 添加华为云 OBS 依赖：
+```xml
+<dependency>
+    <groupId>com.huaweicloud</groupId>
+    <artifactId>esdk-obs-java</artifactId>
+    <version>3.23.9</version>
+</dependency>
+```
+
+2. 配置 OBS 参数（application.yml）：
+```yaml
+huaweicloud:
+  obs:
+    ak: ${OBS_ACCESS_KEY}
+    sk: ${OBS_SECRET_KEY}
+    endpoint: https://obs.cn-north-4.myhuaweicloud.com
+    bucketName: your-bucket-name
+```
+
+#### 9.2 接口说明
+
+1. 上传文件
+- 请求方式：POST
+- URL：/api/files/upload
+- 参数：
+  - file: 文件（MultipartFile）
+  - directory: 存储目录（可选，默认为 "images"）
+- 响应示例：
+```json
+{
+    "objectKey": "images/uuid.jpg",
+    "url": "https://bucket-name.obs.cn-north-4.myhuaweicloud.com/images/uuid.jpg"
+}
+```
+
+2. 删除文件
+- 请求方式：DELETE
+- URL：/api/files/{objectKey}
+- 参数：
+  - objectKey: 文件的唯一标识
+
+3. 获取文件访问链接
+- 请求方式：GET
+- URL：/api/files/{objectKey}/url
+- 参数：
+  - objectKey: 文件的唯一标识
+- 响应示例：
+```
+https://bucket-name.obs.cn-north-4.myhuaweicloud.com/images/uuid.jpg
+```
+
+#### 9.3 测试命令
+
+1. 上传文件：
+```bash
+curl -X POST http://localhost:8080/api/files/upload ^
+-F "file=@C:\path\to\image.jpg" ^
+-F "directory=images"
+```
+
+2. 删除文件：
+```bash
+curl -X DELETE http://localhost:8080/api/files/images/uuid.jpg
+```
+
+3. 获取文件链接：
+```bash
+curl -X GET http://localhost:8080/api/files/images/uuid.jpg/url
+```
+
+#### 9.4 注意事项
+
+1. 安全性：
+   - 确保 AK/SK 不要硬编码在代码中
+   - 建议使环境变量或配置中心
+   - 生产环境建议启用桶的访问控制
+
+2. 性能优化：
+   - 建议限制上传文件的大小
+   - 大文件建议使用分片上传
+   - 可以配置 CDN 加速
+
+3. 错误处理：
+   - 文件类型限制
+   - 文件大小限制
+   - 存储空间检查
+   - 网络异常处理
+
+4. 最佳实践：
+   - 使用唯一的文件名
+   - 合理的目录结构
+   - 定期清理无用文件
+   - 监控存储使用情况
+
+### 10. 用户头像功能
+
+#### 10.1 数据库更新
+```
+-- 添加头像字段
+ALTER TABLE user 
+ADD COLUMN avatar_url VARCHAR(255) COMMENT '用户头像URL';
+```
+
+#### 10.2 更新用户头像
+- 请求方式：POST
+- URL：/api/users/{id}/avatar
+- 参数：
+  - id: 用户ID（路径参数）
+  - file: 头像文件（MultipartFile）
+- 响应示例：
+```json
+{
+    "id": 1,
+    "username": "zhangsan",
+    "name": "张三",
+    "email": "zhangsan@example.com",
+    "avatarUrl": "https://obs.example.com/avatars/xxx.jpg",
+    "status": 1
+}
+```
+
+#### 10.3 测试命令
+```bash
+# 更新用户头像
+curl -X POST http://localhost:8080/api/users/1/avatar ^
+-F "file=@C:\path\to\avatar.jpg"
+```
+
+#### 10.4 注意事项
+1. 文件大小限制：建议不超过2MB
+2. 支持的文件格式：jpg、jpeg、png
+3. 旧头像会被自动删除
+4. 头像文件存储在 OBS 的 avatars 目录下
+
+### 11. 用户头像接口使用指南
+
+#### 11.1 接口说明
+
+1. 更新用户头像
+- 接口：POST /api/users/{id}/avatar
+- 说明：上传或更新用户头像
+- 参数：
+  - id: 用户ID（路径参数）
+  - file: 头像文件（form-data）
+- 请求示例：
+```bash
+curl -X POST http://localhost:8080/api/users/1/avatar \
+-H "Authorization: Bearer your-token-here" \
+-F "file=@/path/to/avatar.jpg"
+```
+- 响应示例：
+```json
+{
+    "id": 1,
+    "username": "zhangsan",
+    "name": "张三",
+    "email": "zhangsan@example.com",
+    "avatarUrl": "https://my-app.obs.cn-south-1.myhuaweicloud.com/avatars/xxx.jpg",
+    "status": 1
+}
+```
+
+#### 11.2 使用说明
+
+1. 文件上传要求：
+   - 支持的文件格式：jpg、jpeg、png
+   - 最大文件大小：2MB
+   - 建议图片尺寸：200x200 像素
+   - 文件名要求：不含特殊字符
+
+2. 调用步骤：
+   ```javascript
+   // 前端示例代码（使用 FormData）
+   const formData = new FormData();
+   formData.append('file', fileInput.files[0]);
+   
+   fetch('http://localhost:8080/api/users/1/avatar', {
+     method: 'POST',
+     headers: {
+       'Authorization': 'Bearer your-token-here'
+     },
+     body: formData
+   });
+   ```
+
+3. 注意事项：
+   - 请求必须使用 multipart/form-data 格式
+   - 文件字段名必须为 "file"
+   - 需要携带用户认证 token
+   - 旧头像会被自动删除
+
+4. 错误处理：
+   - 400：文件格式不支持或大小超限
+   - 401：未授权（token无效）
+   - 404：用户不存在
+   - 500：服务器错误
+
+#### 11.3 测试方法
+
+1. 使用 curl 命令测试：
+```bash
+# Windows CMD
+curl -X POST http://localhost:8080/api/users/1/avatar ^
+-H "Authorization: Bearer your-token-here" ^
+-F "file=@C:\path\to\avatar.jpg"
+
+# PowerShell 或 Linux
+curl -X POST http://localhost:8080/api/users/1/avatar \
+-H "Authorization: Bearer your-token-here" \
+-F "file=@/path\to\avatar.jpg"
+```
+
+2. 使用 Postman 测试：
+   - 选择 POST 方法
+   - 输入 URL：http://localhost:8080/api/users/1/avatar
+   - 在 Headers 中添加 Authorization
+   - 选择 Body > form-data
+   - 添加 file 字段，选择文件
+
+3. 使用 Swagger UI 测试：
+   - 访问 http://localhost:8080/swagger-ui.html
+   - 找到 /api/users/{id}/avatar 接口
+   - 点击 "Try it out"
+   - 输入用户ID
+   - 上传文件
+   - 点击 "Execute"
+
+#### 11.4 最佳实践
+
+1. 文件处理：
+   - 上传前进行客户端文件格式验证
+   - 压缩大图片再上传
+   - 使用合适的图片格式（如 webp）
+
+2. 错误处理：
+   - 实现上传进度提示
+   - 添加重试机制
+   - 友好的错误提示
+
+3. 性能优化：
+   - 使用图片压缩
+   - 配置 CDN 加速
+   - 实现图片缓存
+
+4. 安全考虑：
+   - 验证文件类型
+   - 限制文件大小
+   - 防止恶意文件上传
+   - 使用 HTTPS 传输

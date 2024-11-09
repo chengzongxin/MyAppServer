@@ -24,3 +24,10 @@ springdoc:
     path: /v3/api-docs
   packages-to-scan: com.example.myappserver.controller
   paths-to-match: /api/**
+
+huaweicloud:
+  obs:
+    ak: 8WIP5EXT7MMTBSRNIQZG # ${OBS_ACCESS_KEY}  # 从环境变量获取
+    sk: XY87GFANQsYZo36NadWe3C983xHnN0TbA27aCNuq # ${OBS_SECRET_KEY}  # 从环境变量获取
+    endpoint: https://obs.cn-south-1.myhuaweicloud.com
+    bucketName: my-app

@@ -25,6 +25,9 @@ public class User {
     @Schema(description = "用户状态：0-禁用，1-正常", example = "1")
     private Integer status;
     
+    @Schema(description = "头像URL", example = "https://obs.example.com/avatars/xxx.jpg")
+    private String avatarUrl;
+    
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
     
