@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://your-production-host:3306/mydatabase?useSSL=true
+    username: your-production-username
+    password: your-production-password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+huaweicloud:
+  obs:
+    ak: ${OBS_ACCESS_KEY}  # 使用环境变量
+    sk: ${OBS_SECRET_KEY}  # 使用环境变量
+    endpoint: https://obs.cn-south-1.myhuaweicloud.com
+    bucketName: my-app
+
+logging:
+  level:
+    root: INFO
+    com.example.myappserver: INFO
+  file:
+    name: /var/log/myapp/application.log 

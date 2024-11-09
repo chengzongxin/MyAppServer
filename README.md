@@ -275,7 +275,7 @@ src/main/java/com/example/myappserver/
 │   ├── LoginRequest.java (登录请求)
 │   └── LoginResponse.java (登录响应)
 └── exception/
-    └── BusinessException.java (务异��)
+    └── BusinessException.java (务异)
 ```
 
 ### 5. 功能说明
@@ -443,7 +443,7 @@ src/main/java/com/example/myappserver/
 
 4. 调试技巧
    - 可以通过 "Schema" 查看数据结构
-   - 响���示例可作为参考
+   - 响应示例可作为参考
    - 错误信息会显示在 Response body 中
    - 可以查看完整的请求和响应头
 
@@ -581,7 +581,7 @@ curl -X GET http://localhost:8080/api/files/images/uuid.jpg/url
 #### 9.4 注意事项
 
 1. 安全性：
-   - 确保 AK/SK 不要硬编码在代���中
+   - 确保 AK/SK 不要硬编码在代中
    - 建议使环境变量或配置中心
    - 生产环境建议启用桶的访问控制
 
@@ -1156,3 +1156,243 @@ curl -X POST http://your-domain:8080/api/posts \
    - 准备回滚方案
    - 建立应急联系机制
    - 准备备用服务器
+
+### 14. 项目部署指南
+
+#### 14.1 环境准备
+
+1. 服务器要求：
+   - Ubuntu 20.04 LTS 或更高版本
+   - 2GB RAM 以上
+   - 20GB 磁盘空间
+   - 公网 IP
+
+2. 安装必要软件：
+```bash
+# 更新系统
+sudo apt update
+sudo apt upgrade -y
+
+# 安装 JDK 17
+sudo apt install openjdk-17-jdk
+
+# 安装 MySQL
+sudo apt install mysql-server
+
+# 安装 Nginx
+sudo apt install nginx
+```
+
+#### 14.2 数据库配置
+
+1. 创建数据库和用户：
+```sql
+CREATE DATABASE mydatabase CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'myapp'@'localhost' IDENTIFIED BY 'your-password';
+GRANT ALL PRIVILEGES ON mydatabase.* TO 'myapp'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+2. 导入数据库结构：
+```bash
+# 复制 SQL 文件到服务器
+scp db/migration.sql user@your-server:/tmp/
+
+# 导入数据库
+mysql -u root -p mydatabase < /tmp/migration.sql
+```
+
+#### 14.3 应用部署
+
+1. 创建应用目录：
+```bash
+sudo mkdir -p /opt/myapp
+sudo mkdir -p /var/log/myapp
+sudo chown -R your-user:your-group /opt/myapp
+sudo chown -R your-user:your-group /var/log/myapp
+```
+
+2. 配置生产环境：
+```bash
+# 创建生产环境配置文件
+vim /opt/myapp/application-prod.yml
+
+# 配置内容
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/mydatabase?useSSL=true
+    username: myapp
+    password: your-password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+huaweicloud:
+  obs:
+    ak: ${OBS_ACCESS_KEY}
+    sk: ${OBS_SECRET_KEY}
+    endpoint: https://obs.cn-south-1.myhuaweicloud.com
+    bucketName: your-bucket-name
+
+logging:
+  level:
+    root: INFO
+  file:
+    name: /var/log/myapp/application.log
+```
+
+3. 创建部署脚本：
+```bash
+# 复制部署脚本到服务器
+scp deploy.sh user@your-server:/opt/myapp/
+chmod +x /opt/myapp/deploy.sh
+```
+
+4. 配置系统服务：
+```bash
+# 创建服务配置文件
+sudo vim /etc/systemd/system/myapp.service
+
+# 配置内容
+[Unit]
+Description=MyApp Server
+After=network.target
+
+[Service]
+Type=simple
+User=your-user
+Environment="SPRING_PROFILES_ACTIVE=prod"
+Environment="OBS_ACCESS_KEY=your-access-key"
+Environment="OBS_SECRET_KEY=your-secret-key"
+WorkingDirectory=/opt/myapp
+ExecStart=/usr/bin/java -jar MyAppServer.jar
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+# 重新加载服务配置
+sudo systemctl daemon-reload
+```
+
+#### 14.4 Nginx 配置
+
+1. 创建 Nginx 配置：
+```bash
+sudo vim /etc/nginx/sites-available/myapp
+
+# 配置内容
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+2. 启用配置：
+```bash
+sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+#### 14.5 部署步骤
+
+1. 在本地打包：
+```bash
+mvn clean package -DskipTests
+```
+
+2. 上传到服务器：
+```bash
+scp target/MyAppServer-0.0.1-SNAPSHOT.jar user@your-server:/opt/myapp/MyAppServer.jar
+```
+
+3. 启动应用：
+```bash
+# 使用系统服务启动
+sudo systemctl start myapp
+
+# 或者使用部署脚本
+cd /opt/myapp
+./deploy.sh
+```
+
+4. 检查状态：
+```bash
+# 检查服务状态
+sudo systemctl status myapp
+
+# 查看日志
+tail -f /var/log/myapp/application.log
+```
+
+#### 14.6 维护指南
+
+1. 日常维护：
+   - 检查日志：`tail -f /var/log/myapp/application.log`
+   - 检查磁盘空间：`df -h`
+   - 检查内存使用：`free -m`
+   - 检查服务状态：`systemctl status myapp`
+
+2. 备份策略：
+```bash
+# 数据库备份
+mysqldump -u root -p mydatabase > backup_$(date +%Y%m%d).sql
+
+# 应用备份
+cp /opt/myapp/MyAppServer.jar /opt/myapp/backup/MyAppServer.jar.$(date +%Y%m%d)
+```
+
+3. 更新应用：
+```bash
+# 停止服务
+sudo systemctl stop myapp
+
+# 备份当前版本
+cp /opt/myapp/MyAppServer.jar /opt/myapp/MyAppServer.jar.old
+
+# 部署新版本
+cp new-version.jar /opt/myapp/MyAppServer.jar
+
+# 启动服务
+sudo systemctl start myapp
+```
+
+4. 回滚流程：
+```bash
+# 停止服务
+sudo systemctl stop myapp
+
+# 恢复旧版本
+mv /opt/myapp/MyAppServer.jar.old /opt/myapp/MyAppServer.jar
+
+# 启动服务
+sudo systemctl start myapp
+```
+
+#### 14.7 监控和告警
+
+1. 系统监控：
+   - CPU 使用率
+   - 内存使用率
+   - 磁盘使用率
+   - 网络流量
+
+2. 应用监控：
+   - 接口响应时间
+   - 错误率
+   - 并发用户数
+   - JVM 状态
+
+3. 告警配置：
+   - 服务器资源告警
+   - 应用错误告警
+   - 数据库性能告警
+   - 安全事件告警

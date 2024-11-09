@@ -1,0 +1,16 @@
+[Unit]
+Description=MyApp Server
+After=network.target
+
+[Service]
+Type=simple
+User=your-user
+Environment="SPRING_PROFILES_ACTIVE=prod"
+Environment="OBS_ACCESS_KEY=your-access-key"
+Environment="OBS_SECRET_KEY=your-secret-key"
+WorkingDirectory=/opt/myapp
+ExecStart=/usr/bin/java -jar MyAppServer.jar
+Restart=always
+
+[Install]
+WantedBy=multi-user.target 
