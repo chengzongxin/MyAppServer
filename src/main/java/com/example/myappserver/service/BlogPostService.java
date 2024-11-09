@@ -4,7 +4,7 @@ import com.example.myappserver.model.BlogPost;
 import java.util.List;
 
 public interface BlogPostService {
-    List<BlogPost> findAll();
+    List<BlogPost> findAll(int offset, int size, String search, Integer categoryId);
     BlogPost findById(Integer id);
     BlogPost create(BlogPost post);
     BlogPost update(BlogPost post);
@@ -15,4 +15,5 @@ public interface BlogPostService {
     void addTag(Integer postId, Integer tagId);
     void removeCategory(Integer postId, Integer categoryId);
     void removeTag(Integer postId, Integer tagId);
+    List<BlogPost> findByCategoryId(Integer categoryId);
 } 

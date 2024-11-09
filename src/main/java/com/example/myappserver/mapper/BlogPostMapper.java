@@ -9,9 +9,34 @@ import java.util.List;
 @Mapper
 public interface BlogPostMapper {
     
-    @Select("SELECT * FROM blog_post WHERE status != 2")
+    @Select("<script>" +
+            "SELECT DISTINCT p.* FROM blog_post p " +
+            "<if test='categoryId != null'>" +
+            "JOIN blog_post_category pc ON p.id = pc.post_id " +
+            "</if>" +
+            "WHERE p.status != 2 " +
+            "<if test='search != null and search != \"\"'>" +
+            "AND (p.title LIKE CONCAT('%', #{search}, '%') " +
+            "OR p.content LIKE CONCAT('%', #{search}, '%') " +
+            "OR p.summary LIKE CONCAT('%', #{search}, '%')) " +
+            "</if>" +
+            "<if test='categoryId != null'>" +
+            "AND pc.category_id = #{categoryId} " +
+            "</if>" +
+            "ORDER BY p.updated_at DESC " +
+            "LIMIT #{offset}, #{pageSize}" +
+            "</script>")
     @Results({
         @Result(property = "id", column = "id"),
+        @Result(property = "title", column = "title"),
+        @Result(property = "content", column = "content"),
+        @Result(property = "summary", column = "summary"),
+        @Result(property = "coverImage", column = "cover_image"),
+        @Result(property = "viewCount", column = "view_count"),
+        @Result(property = "likeCount", column = "like_count"),
+        @Result(property = "commentCount", column = "comment_count"),
+        @Result(property = "createdAt", column = "created_at"),
+        @Result(property = "updatedAt", column = "updated_at"),
         @Result(property = "author", column = "author_id",
                 one = @One(select = "com.example.myappserver.mapper.UserMapper.findById")),
         @Result(property = "categories", column = "id",
@@ -19,7 +44,27 @@ public interface BlogPostMapper {
         @Result(property = "tags", column = "id",
                 many = @Many(select = "findTagsByPostId"))
     })
-    List<BlogPost> findAll();
+    List<BlogPost> findAll(@Param("offset") int offset, 
+                          @Param("pageSize") int pageSize,
+                          @Param("search") String search,
+                          @Param("categoryId") Integer categoryId);
+    
+    @Select("<script>" +
+            "SELECT COUNT(DISTINCT p.id) FROM blog_post p " +
+            "<if test='categoryId != null'>" +
+            "JOIN blog_post_category pc ON p.id = pc.post_id " +
+            "</if>" +
+            "WHERE p.status != 2 " +
+            "<if test='search != null and search != \"\"'>" +
+            "AND (p.title LIKE CONCAT('%', #{search}, '%') " +
+            "OR p.content LIKE CONCAT('%', #{search}, '%') " +
+            "OR p.summary LIKE CONCAT('%', #{search}, '%')) " +
+            "</if>" +
+            "<if test='categoryId != null'>" +
+            "AND pc.category_id = #{categoryId} " +
+            "</if>" +
+            "</script>")
+    long count(@Param("search") String search, @Param("categoryId") Integer categoryId);
     
     @Select("SELECT * FROM blog_post WHERE id = #{id} AND status != 2")
     @Results({
@@ -55,6 +100,9 @@ public interface BlogPostMapper {
     
     @Update("UPDATE blog_post SET comment_count = comment_count + 1 WHERE id = #{id}")
     int incrementCommentCount(@Param("id") Integer id);
+    
+    @Update("UPDATE blog_post SET comment_count = comment_count - 1 WHERE id = #{id}")
+    int decrementCommentCount(@Param("id") Integer id);
     
     @Select("SELECT c.* FROM blog_category c " +
             "JOIN blog_post_category pc ON c.id = pc.category_id " +

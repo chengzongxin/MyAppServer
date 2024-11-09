@@ -6,6 +6,7 @@ import com.example.myappserver.model.BlogPost;
 import com.example.myappserver.model.BlogTag;
 import com.example.myappserver.service.BlogPostService;
 import com.example.myappserver.util.JwtUtil;
+import com.example.myappserver.dto.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -30,8 +31,18 @@ public class BlogPostController {
 
     @Operation(summary = "获取所有文章")
     @GetMapping
-    public ResponseEntity<List<BlogPost>> getAllPosts() {
-        return ResponseEntity.ok(blogPostService.findAll());
+    public ResponseEntity<List<BlogPost>> getAllPosts(
+            @Parameter(description = "页码", example = "1") 
+            @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页大小", example = "10") 
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "搜索关键词", example = "Spring") 
+            @RequestParam(required = false) String search,
+            @Parameter(description = "分类ID", example = "1") 
+            @RequestParam(required = false) Integer categoryId) {
+        // 计算偏移量
+        int offset = (page - 1) * size;
+        return ResponseEntity.ok(blogPostService.findAll(offset, size, search, categoryId));
     }
 
     @Operation(summary = "获取文章详情")
@@ -163,5 +174,12 @@ public class BlogPostController {
             @Parameter(description = "标签ID") @PathVariable Integer tagId) {
         blogPostService.addTag(postId, tagId);
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "获取分类下的所有文章")
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<BlogPost>> getPostsByCategoryId(
+            @Parameter(description = "分类ID") @PathVariable Integer categoryId) {
+        return ResponseEntity.ok(blogPostService.findByCategoryId(categoryId));
     }
 } 

@@ -8,6 +8,7 @@ import com.example.myappserver.model.BlogPost;
 import com.example.myappserver.model.BlogTag;
 import com.example.myappserver.service.BlogPostService;
 import com.example.myappserver.exception.BusinessException;
+import com.example.myappserver.dto.PageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +28,8 @@ public class BlogPostServiceImpl implements BlogPostService {
     private BlogCategoryMapper blogCategoryMapper;
 
     @Override
-    public List<BlogPost> findAll() {
-        return blogPostMapper.findAll();
+    public List<BlogPost> findAll(int offset, int size, String search, Integer categoryId) {
+        return blogPostMapper.findAll(offset, size, search, categoryId);
     }
 
     @Override
@@ -47,7 +48,6 @@ public class BlogPostServiceImpl implements BlogPostService {
         post.setStatus(1); // 1-已发布
         post.setViewCount(0);
         post.setLikeCount(0);
-        post.setCommentCount(0);
         
         // 验证分类是否存在
         if (post.getCategories() != null) {
@@ -77,7 +77,6 @@ public class BlogPostServiceImpl implements BlogPostService {
                     blogTagMapper.insert(tag);
                     existingTag = tag;
                 }
-                // 关联文章和标签
                 blogPostMapper.insertTag(post.getId(), existingTag.getId());
             });
         }
@@ -170,5 +169,11 @@ public class BlogPostServiceImpl implements BlogPostService {
     @Override
     public void removeTag(Integer postId, Integer tagId) {
         blogPostMapper.deleteTags(postId);
+    }
+
+    @Override
+    public List<BlogPost> findByCategoryId(Integer categoryId) {
+        // 使用已有的 findAll 方法，传入分类ID，不分页
+        return blogPostMapper.findAll(0, Integer.MAX_VALUE, null, categoryId);
     }
 } 

@@ -2,6 +2,8 @@ package com.example.myappserver.controller;
 
 import com.example.myappserver.model.BlogComment;
 import com.example.myappserver.service.BlogCommentService;
+import com.example.myappserver.util.JwtUtil;
+import com.example.myappserver.dto.CommentRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,6 +22,9 @@ public class BlogCommentController {
     @Autowired
     private BlogCommentService blogCommentService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @Operation(summary = "获取文章的所有评论")
     @GetMapping("/post/{postId}")
     public ResponseEntity<List<BlogComment>> getCommentsByPostId(
@@ -37,7 +42,17 @@ public class BlogCommentController {
     @Operation(summary = "创建评论")
     @PostMapping
     public ResponseEntity<BlogComment> createComment(
-            @Parameter(description = "评论信息") @RequestBody BlogComment comment) {
+            @Parameter(description = "评论信息") @RequestBody CommentRequest request,
+            @RequestHeader("Authorization") String authorization) {
+        String token = authorization.substring(7); // 去掉 "Bearer "
+        Integer userId = jwtUtil.getUserIdFromToken(token);
+        
+        BlogComment comment = new BlogComment();
+        comment.setPostId(request.getPostId());
+        comment.setContent(request.getContent());
+        comment.setParentId(request.getParentId());
+        comment.setUserId(userId);
+        
         return ResponseEntity.ok(blogCommentService.create(comment));
     }
 
