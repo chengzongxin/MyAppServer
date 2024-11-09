@@ -88,23 +88,48 @@ public class BlogPostServiceImpl implements BlogPostService {
     @Override
     @Transactional
     public BlogPost update(BlogPost post) {
+        // 获取原有文章信息
         BlogPost existingPost = findById(post.getId());
+        if (existingPost == null) {
+            throw new BusinessException("文章不存在");
+        }
+        
+        // 保持原有的作者ID和状态
+        post.setAuthorId(existingPost.getAuthorId());
+        post.setStatus(existingPost.getStatus());
         
         // 更新基本信息
         blogPostMapper.update(post);
         
         // 更新分类
         if (post.getCategories() != null) {
+            // 先删除所有旧分类
             blogPostMapper.deleteCategories(post.getId());
-            post.getCategories().forEach(category -> 
-                blogPostMapper.insertCategory(post.getId(), category.getId()));
+            // 添加新分类
+            post.getCategories().forEach(category -> {
+                // 验证分类是否存在
+                BlogCategory existingCategory = blogCategoryMapper.findById(category.getId());
+                if (existingCategory == null) {
+                    throw new BusinessException("分类不存在: " + category.getId());
+                }
+                blogPostMapper.insertCategory(post.getId(), category.getId());
+            });
         }
         
         // 更新标签
         if (post.getTags() != null) {
+            // 先删除所有旧标签
             blogPostMapper.deleteTags(post.getId());
-            post.getTags().forEach(tag -> 
-                blogPostMapper.insertTag(post.getId(), tag.getId()));
+            // 添加新标签
+            post.getTags().forEach(tag -> {
+                // 查找或创建标签
+                BlogTag existingTag = blogTagMapper.findByName(tag.getName());
+                if (existingTag == null) {
+                    blogTagMapper.insert(tag);
+                    existingTag = tag;
+                }
+                blogPostMapper.insertTag(post.getId(), existingTag.getId());
+            });
         }
         
         return findById(post.getId());

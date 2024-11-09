@@ -88,8 +88,38 @@ public class BlogPostController {
     @PutMapping("/{id}")
     public ResponseEntity<BlogPost> updatePost(
             @Parameter(description = "文章ID") @PathVariable Integer id,
-            @Parameter(description = "文章信息") @RequestBody BlogPost post) {
+            @Parameter(description = "文章信息") @RequestBody BlogPostRequest request) {
+        // 将 DTO 转换为实体
+        BlogPost post = new BlogPost();
         post.setId(id);
+        post.setTitle(request.getTitle());
+        post.setContent(request.getContent());
+        post.setSummary(request.getSummary());
+        
+        // 设置分类
+        if (request.getCategoryIds() != null) {
+            List<BlogCategory> categories = request.getCategoryIds().stream()
+                .map(categoryId -> {
+                    BlogCategory category = new BlogCategory();
+                    category.setId(categoryId);
+                    return category;
+                })
+                .collect(Collectors.toList());
+            post.setCategories(categories);
+        }
+        
+        // 设置标签
+        if (request.getTags() != null) {
+            List<BlogTag> tags = request.getTags().stream()
+                .map(name -> {
+                    BlogTag tag = new BlogTag();
+                    tag.setName(name);
+                    return tag;
+                })
+                .collect(Collectors.toList());
+            post.setTags(tags);
+        }
+        
         return ResponseEntity.ok(blogPostService.update(post));
     }
 
