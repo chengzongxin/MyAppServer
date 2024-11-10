@@ -5,8 +5,6 @@ import com.example.myappserver.exception.BusinessException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectRequest;
 import com.obs.services.model.PutObjectResult;
-import com.obs.services.model.TemporarySignatureRequest;
-import com.obs.services.model.TemporarySignatureResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,6 +24,9 @@ public class FileServiceImpl implements FileService {
     @Value("${huaweicloud.obs.bucketName}")
     private String bucketName;
     
+    @Value("${huaweicloud.obs.endpoint}")
+    private String endpoint;
+
     @Override
     public Map<String, String> uploadFile(MultipartFile file, String directory) {
         try {
@@ -43,10 +44,13 @@ public class FileServiceImpl implements FileService {
             // 上传文件
             PutObjectResult result = obsClient.putObject(request);
             
+            // 构建永久访问链接
+            String url = String.format("https://%s.%s/%s", bucketName, endpoint.substring(8), objectKey);
+            
             // 返回结果
             Map<String, String> response = new HashMap<>();
             response.put("objectKey", objectKey);
-            response.put("url", getFileUrl(objectKey));
+            response.put("url", url);
             return response;
             
         } catch (IOException e) {
@@ -61,17 +65,7 @@ public class FileServiceImpl implements FileService {
     
     @Override
     public String getFileUrl(String objectKey) {
-        try {
-            // 创建临时签名请求
-            TemporarySignatureRequest request = new TemporarySignatureRequest(com.obs.services.model.HttpMethodEnum.GET, 3600);
-            request.setBucketName(bucketName);
-            request.setObjectKey(objectKey);
-            
-            // 获取临时签名URL
-            TemporarySignatureResponse response = obsClient.createTemporarySignature(request);
-            return response.getSignedUrl();
-        } catch (Exception e) {
-            throw new BusinessException("获取文件访问链接失败: " + e.getMessage());
-        }
+        // 返回永久访问链接
+        return String.format("https://%s.%s/%s", bucketName, endpoint.substring(8), objectKey);
     }
 } 

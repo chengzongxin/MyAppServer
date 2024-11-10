@@ -278,7 +278,7 @@ src/main/java/com/example/myappserver/
     └── BusinessException.java (务异)
 ```
 
-### 5. 功能说明
+### 5. 功能说��
 
 1. 用户管理基础功能：
    - 创建用户
@@ -582,7 +582,7 @@ curl -X GET http://localhost:8080/api/files/images/uuid.jpg/url
 
 1. 安全性：
    - 确保 AK/SK 不要硬编码在代中
-   - 建议使环境变量或配置中心
+   - 建议使环境变��或配置中心
    - 生产环境建议启用桶的访问控制
 
 2. 性能优化：
@@ -597,7 +597,7 @@ curl -X GET http://localhost:8080/api/files/images/uuid.jpg/url
    - 网络异常处理
 
 4. 最佳实践：
-   - 使用唯一的文件名
+   - 使��唯一的文件名
    - 合理的目录结构
    - 定期清理无用文件
    - 监控存储使用情况
@@ -652,7 +652,7 @@ curl -X POST http://localhost:8080/api/users/1/avatar ^
 - 参数：
   - id: 用户ID（路径参数）
   - file: 头像文件（form-data）
-- 请求示例：
+- 请���示例：
 ```bash
 curl -X POST http://localhost:8080/api/users/1/avatar \
 -H "Authorization: Bearer your-token-here" \
@@ -1165,7 +1165,7 @@ curl -X POST http://your-domain:8080/api/posts \
    - Ubuntu 20.04 LTS 或更高版本
    - 2GB RAM 以上
    - 20GB 磁盘空间
-   - 公网 IP
+   - ���网 IP
 
 2. 安装必要软件：
 ```bash
@@ -1361,7 +1361,7 @@ cp /opt/myapp/MyAppServer.jar /opt/myapp/MyAppServer.jar.old
 # 部署新版本
 cp new-version.jar /opt/myapp/MyAppServer.jar
 
-# 启动服务
+# 启动服���
 sudo systemctl start myapp
 ```
 
@@ -1396,3 +1396,99 @@ sudo systemctl start myapp
    - 应用错误告警
    - 数据库性能告警
    - 安全事件告警
+
+### 15. 文件存储配置指南
+
+#### 15.1 华为云 OBS 配置
+
+1. 基础配置
+```yaml
+huaweicloud:
+  obs:
+    ak: your-access-key
+    sk: your-secret-key
+    endpoint: https://obs.cn-south-1.myhuaweicloud.com
+    bucketName: your-bucket-name
+```
+
+2. 桶权限设置
+- 登录华为云控制台
+- 进入 OBS 服务
+- 选择或创建桶
+- 设置桶的访问权限为"公共读"
+- 配置桶策略：
+```json
+{
+    "Version": "1.1",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "ID": ["*"]
+            },
+            "Action": ["GetObject"],
+            "Resource": ["your-bucket-name/*"]
+        }
+    ]
+}
+```
+
+3. 跨域配置（CORS）
+```json
+[
+    {
+        "AllowedOrigin": ["*"],
+        "AllowedMethod": ["GET", "HEAD"],
+        "AllowedHeader": ["*"],
+        "MaxAgeSeconds": 3600
+    }
+]
+```
+
+#### 15.2 文件上传接口
+
+1. 上传文件
+```bash
+curl -X POST http://your-domain/api/files/upload \
+-H "Authorization: Bearer your-token" \
+-F "file=@/path/to/file.jpg" \
+-F "directory=images"
+```
+
+响应示例：
+```json
+{
+    "objectKey": "images/abc123.jpg",
+    "url": "https://your-bucket.obs.cn-south-1.myhuaweicloud.com/images/abc123.jpg"
+}
+```
+
+2. 删除文件
+```bash
+curl -X DELETE http://your-domain/api/files/images/abc123.jpg \
+-H "Authorization: Bearer your-token"
+```
+
+#### 15.3 注意事项
+
+1. 文件访问
+   - 所有上传的文件使用永久访问链接
+   - URL 格式：`https://{bucket-name}.{endpoint}/{object-key}`
+   - 无需签名即可访问
+
+2. 安全考虑
+   - 仅允许特定文件类型上传
+   - 限制文件大小
+   - 使用随机文件名
+   - 按目录分类存储
+
+3. 性能优化
+   - 图片建议压缩后上传
+   - 大文件考虑分片上传
+   - 使用 CDN 加速访问
+
+4. 维护建议
+   - 定期清理无用文件
+   - 监控存储空间使用
+   - 备份重要文件
+   - 记录文件操作日志
