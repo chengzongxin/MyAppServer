@@ -7,10 +7,10 @@ import java.util.List;
 @Mapper
 public interface BlogCategoryMapper {
     
-    @Select("SELECT c.*, COUNT(DISTINCT pc.post_id) as post_count " +
+    @Select("SELECT c.*, COUNT(DISTINCT CASE WHEN p.status != 2 THEN pc.post_id END) as post_count " +
             "FROM blog_category c " +
             "LEFT JOIN blog_post_category pc ON c.id = pc.category_id " +
-            "LEFT JOIN blog_post p ON pc.post_id = p.id AND p.status != 2 " +
+            "LEFT JOIN blog_post p ON pc.post_id = p.id " +
             "GROUP BY c.id")
     @Results({
         @Result(property = "id", column = "id"),
