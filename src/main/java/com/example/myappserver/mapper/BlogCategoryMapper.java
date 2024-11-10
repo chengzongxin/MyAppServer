@@ -7,7 +7,19 @@ import java.util.List;
 @Mapper
 public interface BlogCategoryMapper {
     
-    @Select("SELECT * FROM blog_category")
+    @Select("SELECT c.*, COUNT(DISTINCT pc.post_id) as post_count " +
+            "FROM blog_category c " +
+            "LEFT JOIN blog_post_category pc ON c.id = pc.category_id " +
+            "LEFT JOIN blog_post p ON pc.post_id = p.id AND p.status != 2 " +
+            "GROUP BY c.id")
+    @Results({
+        @Result(property = "id", column = "id"),
+        @Result(property = "name", column = "name"),
+        @Result(property = "description", column = "description"),
+        @Result(property = "postCount", column = "post_count"),
+        @Result(property = "createdAt", column = "created_at"),
+        @Result(property = "updatedAt", column = "updated_at")
+    })
     List<BlogCategory> findAll();
     
     @Select("SELECT * FROM blog_category WHERE id = #{id}")
